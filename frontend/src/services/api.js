@@ -1,36 +1,20 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+    // Direct path to your Render backend with the /api prefix
+    baseURL: import.meta.env.VITE_API_URL || 'https://leave-management-application-j5oy.onrender.com/api',
     headers: {
-        'Content-Type': 'application/json',
-    },
+        'Content-Type': 'application/json'
+    }
 });
 
-// Request Interceptor: Add JWT Token to headers
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+// Automatically attach JWT token to every request if it exists
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
-);
-
-// Response Interceptor: Handle logout on 401
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            localStorage.clear();
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
-    }
-);
+    return config;
+});
 
 export default api;

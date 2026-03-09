@@ -1,101 +1,56 @@
 <template>
-  <div class="flex min-h-full items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-gray-50">
-    <div class="w-full max-w-md space-y-8 bg-white p-10 rounded-2xl shadow-sm border border-gray-100">
-      <div>
-        <div class="flex justify-center">
-          <div class="bg-blue-600 p-3 rounded-xl">
-             <CalendarCheck class="h-8 w-8 text-white" />
-          </div>
-        </div>
-        <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">Sign in to LeaveHub</h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          Or
-          <router-link to="/register" class="font-medium text-blue-600 hover:text-blue-500">
-            create a new account
-          </router-link>
-        </p>
-      </div>
-      
-      <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
-        <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {{ error }}
-        </div>
-        
-        <div class="space-y-4 rounded-md">
-          <div>
-            <label for="email-address" class="block text-sm font-medium text-gray-700">Email address</label>
-            <input 
-              v-model="form.email"
-              id="email-address" 
-              name="email" 
-              type="email" 
-              required 
-              class="relative block w-full mt-1 border-gray-300 rounded-lg border-2 p-2 focus:border-blue-500 outline-none transition-all sm:text-sm" 
-              placeholder="name@company.com" 
-            />
-          </div>
-          <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-            <input 
-              v-model="form.password"
-              id="password" 
-              name="password" 
-              type="password" 
-              required 
-              class="relative block w-full mt-1 border-gray-300 rounded-lg border-2 p-2 focus:border-blue-500 outline-none transition-all sm:text-sm" 
-              placeholder="••••••••" 
-            />
-          </div>
-        </div>
-
+  <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <div class="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+      <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
+      <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <button 
-            type="submit" 
-            :disabled="loading"
-            class="group relative flex w-full justify-center rounded-lg bg-blue-600 py-3 px-4 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-all shadow-lg shadow-blue-200"
-          >
-            <span v-if="loading">Signing in...</span>
-            <span v-else>Sign in</span>
-          </button>
+          <label class="block text-sm font-medium">Email</label>
+          <input v-model="form.email" type="email" required class="w-full p-2 border rounded">
         </div>
+        <div>
+          <label class="block text-sm font-medium">Password</label>
+          <input v-model="form.password" type="password" required class="w-full p-2 border rounded">
+        </div>
+        <button type="submit" :disabled="loading" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </button>
       </form>
+      <p class="text-center mt-4 text-sm">
+        New here? <router-link to="/register" class="text-blue-500">Register</router-link>
+      </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { CalendarCheck } from 'lucide-vue-next';
 import api from '../services/api';
 
 const router = useRouter();
 const loading = ref(false);
-const error = ref('');
-
-const form = reactive({
-  email: '',
-  password: ''
-});
+const form = ref({ email: '', password: '' });
 
 const handleLogin = async () => {
   loading.value = true;
-  error.value = '';
   try {
-    const response = await api.post('/auth/login', form);
-    const { token, role, name } = response.data;
+    const res = await api.post('/auth/login', form.value);
     
-    localStorage.setItem('token', token);
-    localStorage.setItem('userRole', role);
+    // FIX: Convert role to lowercase before saving
+    const role = res.data.user.role.toLowerCase();
+    const name = res.data.user.name;
+
+    localStorage.setItem('token', res.data.token);
+    localStorage.setItem('role', role);
     localStorage.setItem('userName', name);
 
     if (role === 'employer') {
-      router.push('/employer');
+      router.push('/employer-dashboard');
     } else {
-      router.push('/employee');
+      router.push('/employee-dashboard');
     }
   } catch (err) {
-    error.value = err.response?.data?.message || 'Login failed. Please check your credentials.';
+    alert(err.response?.data?.message || 'Login failed');
   } finally {
     loading.value = false;
   }
